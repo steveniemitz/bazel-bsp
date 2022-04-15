@@ -2,7 +2,6 @@ package org.jetbrains.bsp.bazel;
 
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.BuildTargetCapabilities;
-import ch.epfl.scala.bsp4j.BuildTargetDataKind;
 import ch.epfl.scala.bsp4j.BuildTargetIdentifier;
 import ch.epfl.scala.bsp4j.DependencySourcesItem;
 import ch.epfl.scala.bsp4j.DependencySourcesParams;
@@ -39,7 +38,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.jetbrains.bsp.bazel.base.BazelBspTestBaseScenario;
 import org.jetbrains.bsp.bazel.base.BazelBspTestScenarioStep;
-import org.jetbrains.bsp.bazel.commons.Constants;
 
 public class BazelBspSampleRepoTest extends BazelBspTestBaseScenario {
 
@@ -329,48 +327,182 @@ public class BazelBspSampleRepoTest extends BazelBspTestBaseScenario {
   }
 
   private WorkspaceBuildTargetsResult getExpectedWorkspaceBuildTargetsResult() {
-    List<String> scalaTargetsJars =
-        List.of(
-            "__main__/external/io_bazel_rules_scala_scala_compiler/scala-compiler-2.12.8.jar",
-            "__main__/external/io_bazel_rules_scala_scala_library/scala-library-2.12.8.jar",
-            "__main__/external/io_bazel_rules_scala_scala_reflect/scala-reflect-2.12.8.jar");
 
-    ScalaBuildTarget scalaTarget =
+    JvmBuildTarget jvmBuildTarget =
+        new JvmBuildTarget("file://$BAZEL_CACHE/external/local_jdk/", "8");
+
+    BuildTarget javaTargetsJavaBinary =
+        new BuildTarget(
+            new BuildTargetIdentifier("//java_targets:java_binary"),
+            List.of("application"),
+            List.of("java"),
+            List.of(),
+            new BuildTargetCapabilities(true, false, true, false));
+
+    javaTargetsJavaBinary.setDisplayName("//java_targets:java_binary");
+    javaTargetsJavaBinary.setBaseDirectory("file://$WORKSPACE/java_targets/");
+    javaTargetsJavaBinary.setDataKind("jvm");
+    javaTargetsJavaBinary.setData(jvmBuildTarget);
+
+    ScalaBuildTarget scalaBuildTarget =
         new ScalaBuildTarget(
-            "org.scala-lang", "2.12.8", "2.12", ScalaPlatform.JVM, scalaTargetsJars);
-    scalaTarget.setJvmBuildTarget(new JvmBuildTarget("external/local_jdk/", "8"));
-
-    BuildTarget exampleExampleTarget =
-        new BuildTarget(
-            new BuildTargetIdentifier("//example:example"),
-            List.of(),
-            List.of(Constants.SCALA),
-            List.of(new BuildTargetIdentifier("//dep:dep")),
-            new BuildTargetCapabilities(true, false, true));
-    exampleExampleTarget.setData(scalaTarget);
-    exampleExampleTarget.setDataKind(BuildTargetDataKind.SCALA);
-
-    BuildTarget depDepTarget =
-        new BuildTarget(
-            new BuildTargetIdentifier("//dep:dep"),
-            List.of(),
-            List.of(Constants.JAVA, Constants.SCALA),
+            "org.scala-lang",
+            "2.12.14",
+            "2.12",
+            ScalaPlatform.JVM,
             List.of(
-                new BuildTargetIdentifier("//dep:deeper-export"),
-                new BuildTargetIdentifier("//dep/deeper:deeper")),
-            new BuildTargetCapabilities(true, false, false));
-    depDepTarget.setData(scalaTarget);
-    depDepTarget.setDataKind(BuildTargetDataKind.SCALA);
+                "file://$BAZEL_CACHE/external/io_bazel_rules_scala_scala_compiler/scala-compiler-2.12.14.jar",
+                "file://$BAZEL_CACHE/external/io_bazel_rules_scala_scala_compiler/scala-library-2.12.14.jar",
+                "file://$BAZEL_CACHE/external/io_bazel_rules_scala_scala_compiler/scala-reflect-2.12.14.jar"));
 
-    BuildTarget depDeeperExportTarget =
+    scalaBuildTarget.setJvmBuildTarget(jvmBuildTarget);
+
+    BuildTarget scalaTargetsScalaBinary =
         new BuildTarget(
-            new BuildTargetIdentifier("//dep:deeper-export"),
+            new BuildTargetIdentifier("//scala_targets:scala_binary"),
+            List.of("application"),
+            List.of("scala"),
+            List.of(),
+            new BuildTargetCapabilities(true, false, true, false));
+
+    scalaTargetsScalaBinary.setDisplayName("//scala_targets:scala_binary");
+    scalaTargetsScalaBinary.setBaseDirectory("file://$WORKSPACE/scala_targets/");
+    scalaTargetsScalaBinary.setDataKind("scala");
+    scalaTargetsScalaBinary.setData(scalaBuildTarget);
+
+    BuildTarget javaTargetsSubpackageSubpackage =
+        new BuildTarget(
+            new BuildTargetIdentifier("//java_targets/subpackage:subpackage"),
+            List.of("library"),
+            List.of("java"),
+            List.of(),
+            new BuildTargetCapabilities(true, false, false, false));
+    javaTargetsSubpackageSubpackage.setDisplayName("//java_targets/subpackage:subpackage");
+    javaTargetsSubpackageSubpackage.setBaseDirectory("file://$WORKSPACE/java_targets/subpackage/");
+    javaTargetsSubpackageSubpackage.setDataKind("jvm");
+    javaTargetsSubpackageSubpackage.setData(jvmBuildTarget);
+
+    BuildTarget javaTargetsJavaLibrary =
+        new BuildTarget(
+            new BuildTargetIdentifier("//java_targets:java_library"),
+            List.of("library"),
+            List.of("java"),
+            List.of(),
+            new BuildTargetCapabilities(true, false, false, false));
+    javaTargetsJavaLibrary.setDisplayName("//java_targets:java_library");
+    javaTargetsJavaLibrary.setBaseDirectory("file://$WORKSPACE/java_targets/");
+    javaTargetsJavaLibrary.setDataKind("jvm");
+    javaTargetsJavaLibrary.setData(jvmBuildTarget);
+
+    BuildTarget targetWithoutJvmFlagsBinary =
+        new BuildTarget(
+            new BuildTargetIdentifier("//target_without_jvm_flags:binary"),
+            List.of("application"),
+            List.of("scala"),
+            List.of(),
+            new BuildTargetCapabilities(true, false, true, false));
+    targetWithoutJvmFlagsBinary.setDisplayName("//target_without_jvm_flags:binary");
+    targetWithoutJvmFlagsBinary.setBaseDirectory("file://$WORKSPACE/target_without_jvm_flags/");
+    targetWithoutJvmFlagsBinary.setDataKind("scala");
+    targetWithoutJvmFlagsBinary.setData(scalaBuildTarget);
+
+    BuildTarget targetWithoutMainClassLibrary =
+        new BuildTarget(
+            new BuildTargetIdentifier("//target_without_main_class:library"),
+            List.of("library"),
+            List.of("scala"),
+            List.of(),
+            new BuildTargetCapabilities(true, false, false, false));
+    targetWithoutMainClassLibrary.setDisplayName("//target_without_main_class:library");
+    targetWithoutMainClassLibrary.setBaseDirectory("file://$WORKSPACE/target_without_main_class/");
+    targetWithoutMainClassLibrary.setDataKind("scala");
+    targetWithoutMainClassLibrary.setData(scalaBuildTarget);
+
+    BuildTarget targetWithoutArgsBinary =
+        new BuildTarget(
+            new BuildTargetIdentifier("//target_without_args:binary"),
+            List.of("application"),
+            List.of("scala"),
+            List.of(),
+            new BuildTargetCapabilities(true, false, true, false));
+    targetWithoutArgsBinary.setDisplayName("//target_without_args:binary");
+    targetWithoutArgsBinary.setBaseDirectory("file://$WORKSPACE/target_without_args/");
+    targetWithoutArgsBinary.setDataKind("scala");
+    targetWithoutArgsBinary.setData(scalaBuildTarget);
+
+    BuildTarget targetWithDependencyJavaBinary =
+        new BuildTarget(
+            new BuildTargetIdentifier("//target_with_dependency:java_binary"),
+            List.of("application"),
+            List.of("java"),
+            List.of(
+                new BuildTargetIdentifier("//java_targets:java_library_exported"),
+                new BuildTargetIdentifier("@guava//:guava"),
+                new BuildTargetIdentifier("//java_targets/subpackage:subpackage")),
+            new BuildTargetCapabilities(true, false, true, false));
+    targetWithDependencyJavaBinary.setDisplayName("//target_with_dependency:java_binary");
+    targetWithDependencyJavaBinary.setBaseDirectory("file://$WORKSPACE/target_with_dependency/");
+    targetWithDependencyJavaBinary.setDataKind("jvm");
+    targetWithDependencyJavaBinary.setData(jvmBuildTarget);
+
+    BuildTarget scalaTargetsScalaTest =
+        new BuildTarget(
+            new BuildTargetIdentifier("//scala_targets:scala_test"),
+            List.of("test"),
+            List.of("scala"),
+            List.of(),
+            new BuildTargetCapabilities(true, true, false, false));
+    scalaTargetsScalaTest.setDisplayName("//scala_targets:scala_test");
+    scalaTargetsScalaTest.setBaseDirectory("file://$WORKSPACE/scala_targets/");
+    scalaTargetsScalaTest.setDataKind("scala");
+    scalaTargetsScalaTest.setData(scalaBuildTarget);
+
+    BuildTarget targetWithResourcesJavaBinary =
+        new BuildTarget(
+            new BuildTargetIdentifier("//target_with_resources:java_binary"),
+            List.of("application"),
+            List.of("java"),
+            List.of(),
+            new BuildTargetCapabilities(true, false, true, false));
+    targetWithResourcesJavaBinary.setDisplayName("//target_with_resources:java_binary");
+    targetWithResourcesJavaBinary.setBaseDirectory("file://$WORKSPACE/target_with_resources/");
+    targetWithResourcesJavaBinary.setDataKind("jvm");
+    targetWithResourcesJavaBinary.setData(jvmBuildTarget);
+
+    BuildTarget javaTargetsJavaLibraryExported =
+        new BuildTarget(
+            new BuildTargetIdentifier("//java_targets:java_library_exported"),
+            List.of("library"),
+            List.of(),
+            List.of(new BuildTargetIdentifier("//java_targets/subpackage:subpackage")),
+            new BuildTargetCapabilities(true, false, false, false));
+    javaTargetsJavaLibraryExported.setDisplayName("//java_targets:java_library_exported");
+    javaTargetsJavaLibraryExported.setBaseDirectory("file://$WORKSPACE/java_targets/");
+
+    BuildTarget bspWorkspaceRoot =
+        new BuildTarget(
+            new BuildTargetIdentifier("bsp-workspace-root"),
             List.of(),
             List.of(),
-            List.of(new BuildTargetIdentifier("//dep/deeper:deeper")),
-            new BuildTargetCapabilities(true, false, false));
+            List.of(),
+            new BuildTargetCapabilities(false, false, false, false));
+
+    bspWorkspaceRoot.setDisplayName("bsp-workspace-root");
+    bspWorkspaceRoot.setBaseDirectory("file://$WORKSPACE/");
 
     return new WorkspaceBuildTargetsResult(
-        List.of(exampleExampleTarget, depDepTarget, depDeeperExportTarget));
+        List.of(
+            javaTargetsJavaBinary,
+            scalaTargetsScalaBinary,
+            javaTargetsSubpackageSubpackage,
+            javaTargetsJavaLibrary,
+            targetWithoutJvmFlagsBinary,
+            targetWithoutMainClassLibrary,
+            targetWithoutArgsBinary,
+            targetWithDependencyJavaBinary,
+            scalaTargetsScalaTest,
+            targetWithResourcesJavaBinary,
+            javaTargetsJavaLibraryExported,
+            bspWorkspaceRoot));
   }
 }
